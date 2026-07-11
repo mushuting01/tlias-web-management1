@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>TLIAS智能学习辅助系统</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-plus@2.4.2/dist/index.css">
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+        .login-container { height: 100vh; display: flex; justify-content: center; align-items: center; background: #f5f7fa; }
+        .login-card { width: 360px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); border-radius: 12px; background: #fff; }
+        .login-title { text-align: center; font-size: 24px; margin-bottom: 24px; color: #303133; }
+        .app-container { height: 100vh; }
+        .sidebar { background: #304156; color: #fff; }
+        .logo { height: 60px; line-height: 60px; text-align: center; font-size: 18px; font-weight: bold; border-bottom: 1px solid #1f2d3d; white-space: nowrap; overflow: hidden; padding: 0 15px; }
+        .el-menu { border-right: none; background: #304156; }
+        .el-menu-item, .el-sub-menu__title { color: #bfcbd9; }
+        .el-menu-item:hover, .el-sub-menu__title:hover { background: #263445; }
+        .el-menu-item.is-active { color: #409eff; background: #263445; }
+        .el-sub-menu.is-active .el-sub-menu__title { color: #409eff; }
+        .el-header { background: #fff; border-bottom: 1px solid #e6e6e6; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
+        .el-main { background: #f0f2f5; padding: 20px; }
+        .page-card { background: #fff; padding: 20px; border-radius: 4px; min-height: calc(100vh - 120px); }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .page-header h2 { margin: 0; font-size: 20px; color: #303133; }
+        .search-form { margin-bottom: 20px; padding: 18px 20px; background: #f5f7fa; border-radius: 4px; }
+        .table-toolbar { margin-bottom: 20px; }
+        .breadcrumb { font-size: 14px; color: #606266; }
+        .user-info { display: flex; align-items: center; gap: 12px; }
+    </style>
+</head>
+<body>
+<div id="app">
+    <!-- 登录页面 -->
+    <div class="login-container" v-if="!token">
+        <div class="login-card">
+            <div class="login-title">TLIAS 登录</div>
+            <el-form :model="loginForm" label-position="top">
+                <el-form-item label="用户名">
+                    <el-input v-model="loginForm.username" placeholder="请输入用户名"></el-input>
+                </el-form-item>
+                <el-form-item label="密码">
+                    <el-input v-model="loginForm.password" type="password" placeholder="请输入密码" @keyup.enter="doLogin"></el-input>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" style="width:100%" @click="doLogin" :loading="loading">登录</el-button>
+                </el-form-item>
+            </el-form>
+        </div>
+    </div>
+
+    <!-- 主页面 -->
+    <el-container v-else class="app-container">
+        <el-aside width="240px" class="sidebar">
+            <div class="logo">TLIAS智能学习辅助系统</div>
+            <el-menu :default-active="currentMenu" class="el-menu-vertical" @select="handleMenuSelect" background-color="#304156" text-color="#bfcbd9" active-text-color="#409eff">
+                <el-menu-item index="home">
+                    <span>首页</span>
+                </el-menu-item>
+                <el-sub-menu index="system">
+                    <template #title>
+                        <span>系统信息管理</span>
+                    </template>
+                    <el-menu-item index="dept">部门管理</el-menu-item>
+                    <el-menu-item index="emp">员工管理</el-menu-item>
+                </el-sub-menu>
+                <el-sub-menu index="data">
+                    <template #title>
+                        <span>数据统计管理</span>
+                    </template>
+                    <el-menu-item index="empStats">员工信息统计</el-menu-item>
+                    <el-menu-item index="studentStats">学员信息统计</el-menu-item>
+                </el-sub-menu>
+            </el-menu>
+        </el-aside>
+        <el-container>
+            <el-header>
+                <div class="breadcrumb">{{ breadcrumb }}</div>
+                <div class="user-info">
+                    <span style="color:#606266;font-size:14px;">{{ loginForm.username || '管理员' }}</span>
+                    <el-button size="small" @click="logout">退出登录</el-button>
+                </div>
+            </el-header>
+            <el-main>
+                <!-- 首页 -->
+                <div v-if="currentMenu === 'home'" class="page-card">
+                    <div class="page-header">
+                        <h2>首页</h2>
+                    </div>
+                    <p style="color:#606666;font-size:16px;">欢迎使用 TLIAS 智能学习辅助系统</p>
+                </div>
+
+                <!-- 部门管理 -->
+                <div v-if="currentMenu === 'dept'" class="page-card">
+                    <div class="page-header">
+                        <h2>部门管理</h2>
+                        <el-button type="primary" @click="openAddDept">+ 新增部门</el-button>
+                    </div>
+                    <el-table :data="deptList" border stripe style="width: 100%">
+                        <el-table-column type="index" label="序号" width="80" align="center"></el-table-column>
+                        <el-table-column prop="name" label="部门名称"></el-table-column>
+                        <el-table-column prop="createTime" label="创建时间" width="180"></el-table-column>
+                        <el-table-column prop="updateTime" label="最后操作时间" width="180"></el-table-column>
+                        <el-table-column label="操作" width="180" align="center">
+                            <template #default="scope">
+                                <el-button size="small" type="primary" @click="openEditDept(scope.row)">编辑</el-button>
+                                <el-button size="small" type="danger" @click="handleDeleteDept(scope.row)">删除</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </div>
+
+                <!-- 员工管理 -->
+                <div v-if="currentMenu === 'emp'" class="page-card">
+                    <div class="search-form">
+                        <el-form :inline="true" :model="empSearch">
+                            <el-form-item label="姓名">
+                                <el-input v-model="empSearch.name" placeholder="请输入员工姓名" clearable></el-input>
+                            </el-form-item>
+                            <el-form-item label="性别">
+                                <el-select v-model="empSearch.gender" placeholder="请选择" clearable style="width:120px">
+                                    <el-option label="男" :value="1"></el-option>
+                                    <el-option label="女" :value="2"></el-option>
+                                </el-select>
+                            </el-form-item>
+                            <el-form-item label="入职时间">
+                                <el-date-picker v-model="empSearch.dateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD" style="width: 280px;"></el-date-picker>
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" @click="searchEmp">查询</el-button>
+                                <el-button @click="resetEmpSearch">清空</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </div>
+                    <div class="table-toolbar">
+                        <el-button type="danger" @click="batchDeleteEmp">批量删除</el-button>
+                        <el-button type="primary" @click="openAddEmp">+ 新增员工</el-button>
+                    </div>
+                    <el-table :data="empList" border stripe style="width: 100%" @selection-change="handleEmpSelectionChange">
+                        <el-table-column type="selection" width="55" align="center"></el-table-column>
+                        <el-table-column prop="name" label="姓名" width="120"></el-table-column>
+                        <el-table-column label="头像" width="80" align="center">
+                            <template #default="scope">
+                                <el-image :src="scope.row.image" style="width: 50px; height: 50px; border-radius: 4px;" fit="cover">
+                                    <template #error>
+                                        <div style="width:50px;height:50px;background:#f5f7fa;display:flex;align-items:center;justify-content:center;color:#909399;font-size:12px;border-radius:4px;">加载失败</div>
+                                    </template>
+                                </el-image>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="gender" label="性别" width="80" align="center">
+                            <template #default="scope">
+                                {{ scope.row.gender === 1 ? '男' : scope.row.gender === 2 ? '女' : '' }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="job" label="职位">
+                            <template #default="scope">
+                                {{ jobMap[scope.row.job] || '' }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="entrydate" label="入职日期" width="120" align="center"></el-table-column>
+                        <el-table-column prop="updateTime" label="最后操作时间" width="180" align="center"></el-table-column>
+                        <el-table-column label="操作" width="180" align="center">
+                            <template #default="scope">
+                                <el-button size="small" type="primary" @click="openEditEmp(scope.row)">编辑</el-button>
+                                <el-button size="small" type="danger" @click="handleDeleteEmp(scope.row)">删除</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                    <div style="margin-top:20px; display:flex; justify-content:flex-end;">
+                        <el-pagination v-model:current-page="empPage" v-model:page-size="empPageSize" :total="empTotal" :page-sizes="[5,10,20]" layout="total, sizes, prev, pager, next, jumper" @size-change="fetchEmpList" @current-change="fetchEmpList"></el-pagination>
+                    </div>
+                </div>
+
+                <!-- 统计占位页面 -->
+                <div v-if="currentMenu === 'empStats' || currentMenu === 'studentStats'" class="page-card">
+                    <div class="page-header">
+                        <h2>{{ currentMenu === 'empStats' ? '员工信息统计' : '学员信息统计' }}</h2>
+                    </div>
+                    <p style="color:#909399;">该功能正在开发中...</p>
+                </div>
+            </el-main>
+        </el-container>
+    </el-container>
+
+    <!-- 部门新增/编辑弹窗 -->
+    <el-dialog v-model="deptDialogVisible" :title="deptDialogTitle" width="400px">
+        <el-form :model="deptForm" label-width="80px">
+            <el-form-item label="部门名称">
+                <el-input v-model="deptForm.name" placeholder="请输入部门名称"></el-input>
+            </el-form-item>
+        </el-form>
+        <template #footer>
+            <el-button @click="deptDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="submitDeptForm">确定</el-button>
+        </template>
+    </el-dialog>
+
+    <!-- 员工新增/编辑弹窗 -->
+    <el-dialog v-model="empDialogVisible" :title="empDialogTitle" width="500px">
+        <el-form :model="empForm" label-width="80px">
+            <el-form-item label="姓名">
+                <el-input v-model="empForm.name" placeholder="请输入姓名"></el-input>
+            </el-form-item>
+            <el-form-item label="用户名">
+                <el-input v-model="empForm.username" placeholder="请输入登录用户名"></el-input>
+            </el-form-item>
+            <el-form-item label="密码">
+                <el-input v-model="empForm.password" type="password" placeholder="请输入密码"></el-input>
+            </el-form-item>
+            <el-form-item label="性别">
+                <el-select v-model="empForm.gender" placeholder="请选择" style="width:100%">
+                    <el-option label="男" :value="1"></el-option>
+                    <el-option label="女" :value="2"></el-option>
+                </el-select>
+            </el-form-item>
+            <el-form-item label="职位">
+                <el-select v-model="empForm.job" placeholder="请选择" style="width:100%">
+                    <el-option label="班主任" :value="1"></el-option>
+                    <el-option label="讲师" :value="2"></el-option>
+                    <el-option label="学工主管" :value="3"></el-option>
+                    <el-option label="教研主管" :value="4"></el-option>
+                    <el-option label="咨询师" :value="5"></el-option>
+                </el-select>
+            </el-form-item>
+            <el-form-item label="入职日期">
+                <el-date-picker v-model="empForm.entrydate" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" style="width:100%"></el-date-picker>
+            </el-form-item>
+            <el-form-item label="所属部门">
+                <el-select v-model="empForm.deptId" placeholder="请选择部门" style="width:100%">
+                    <el-option v-for="d in deptList" :key="d.id" :label="d.name" :value="d.id"></el-option>
+                </el-select>
+            </el-form-item>
+            <el-form-item label="头像">
+                <div style="display:flex;align-items:flex-end;gap:15px;">
+                    <el-image v-if="empForm.image" :src="empForm.image" style="width:100px;height:100px;border-radius:4px;border:1px solid #dcdfe6;" fit="cover">
+                        <template #error>
+                            <div style="width:100px;height:100px;display:flex;align-items:center;justify-content:center;background:#f5f7fa;color:#909399;font-size:12px;">加载失败</div>
+                        </template>
+                    </el-image>
+                    <el-upload action="#" :http-request="handleAvatarUpload" :show-file-list="false" :auto-upload="true">
+                        <el-button type="primary">上传头像</el-button>
+                    </el-upload>
+                </div>
+            </el-form-item>
+        </el-form>
+        <template #footer>
+            <el-button @click="empDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="submitEmpForm">确定</el-button>
+        </template>
+    </el-dialog>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@3.3.4/dist/vue.global.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/element-plus@2.4.2/dist/index.full.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios@1.5.0/dist/axios.min.js"></script>
+<script>
+    const { createApp, ref, reactive, onMounted, computed } = Vue;
+    const { ElMessage, ElMessageBox } = ElementPlus;
+
+    const baseURL = '';
+    const request = axios.create({ baseURL, timeout: 10000 });
+    request.interceptors.request.use(config => {
+        const token = localStorage.getItem('token');
+        if (token) config.headers.token = token;
+        return config;
+    });
+    request.interceptors.response.use(
+        response => {
+            const res = response.data;
+            if (res.code === 0 && res.msg === 'NOT_LOGIN') {
+                ElMessage.error('登录已过期，请重新登录');
+                localStorage.removeItem('token');
+                window.location.reload();
+                return Promise.reject(new Error('NOT_LOGIN'));
+            }
+            return res;
+        },
+        error => {
+            ElMessage.error(error.message || '请求失败');
+            return Promise.reject(error);
+        }
+    );
+
+    createApp({
+        setup() {
+            const token = ref(localStorage.getItem('token') || '');
+            const loginForm = reactive({ username: '', password: '' });
+            const loading = ref(false);
+            const currentMenu = ref('home');
+
+            const breadcrumb = computed(() => {
+                const map = {
+                    'home': 'Dashboard / 首页',
+                    'dept': 'Dashboard / 系统信息管理 / 部门管理',
+                    'emp': 'Dashboard / 系统信息管理 / 员工管理',
+                    'empStats': 'Dashboard / 数据统计管理 / 员工信息统计',
+                    'studentStats': 'Dashboard / 数据统计管理 / 学员信息统计'
+                };
+                return map[currentMenu.value] || 'Dashboard';
+            });
+
+            const handleMenuSelect = (index) => {
+                currentMenu.value = index;
+                if (index === 'dept') fetchDeptList();
+                if (index === 'emp') {
+                    fetchDeptList();
+                    fetchEmpList();
+                }
+            };
+
+            // 部门
+            const deptList = ref([]);
+            const deptDialogVisible = ref(false);
+            const deptDialogTitle = ref('新增部门');
+            const deptForm = reactive({ id: null, name: '' });
+            const isEditDept = ref(false);
+
+            const fetchDeptList = async () => {
+                try {
+                    const res = await request.get('/depts');
+                    if (res.code === 1) deptList.value = res.data;
+                } catch (e) {}
+            };
+
+            const openAddDept = () => {
+                isEditDept.value = false;
+                deptDialogTitle.value = '新增部门';
+                deptForm.id = null;
+                deptForm.name = '';
+                deptDialogVisible.value = true;
+            };
+
+            const openEditDept = (row) => {
+                isEditDept.value = true;
+                deptDialogTitle.value = '编辑部门';
+                deptForm.id = row.id;
+                deptForm.name = row.name;
+                deptDialogVisible.value = true;
+            };
+
+            const submitDeptForm = async () => {
+                if (!deptForm.name) {
+                    ElMessage.warning('请输入部门名称');
+                    return;
+                }
+                try {
+                    if (isEditDept.value) {
+                        await request.put('/depts', deptForm);
+                        ElMessage.success('修改成功');
+                    } else {
+                        await request.post('/depts', deptForm);
+                        ElMessage.success('新增成功');
+                    }
+                    deptDialogVisible.value = false;
+                    fetchDeptList();
+                } catch (e) {}
+            };
+
+            const handleDeleteDept = (row) => {
+                ElMessageBox.confirm('确定删除部门 "' + row.name + '" 吗？', '提示', { type: 'warning' })
+                    .then(async () => {
+                        await request.delete('/depts/' + row.id);
+                        ElMessage.success('删除成功');
+                        fetchDeptList();
+                    })
+                    .catch(() => {});
+            };
+
+            // 员工
+            const empList = ref([]);
+            const empPage = ref(1);
+            const empPageSize = ref(10);
+            const empTotal = ref(0);
+            const empSearch = reactive({ name: '', gender: '', dateRange: [] });
+            const empSelected = ref([]);
+            const empDialogVisible = ref(false);
+            const empDialogTitle = ref('新增员工');
+            const empForm = reactive({ id: null, username: '', password: '', name: '', gender: null, image: '', job: null, entrydate: '', deptId: null });
+            const isEditEmp = ref(false);
+            const jobMap = { 1: '班主任', 2: '讲师', 3: '学工主管', 4: '教研主管', 5: '咨询师' };
+
+            const fetchEmpList = async () => {
+                try {
+                    const params = {
+                        page: empPage.value,
+                        pageSize: empPageSize.value,
+                        name: empSearch.name || undefined,
+                        gender: empSearch.gender || undefined,
+                        begin: empSearch.dateRange && empSearch.dateRange.length === 2 ? empSearch.dateRange[0] : undefined,
+                        end: empSearch.dateRange && empSearch.dateRange.length === 2 ? empSearch.dateRange[1] : undefined
+                    };
+                    const res = await request.get('/emps', { params });
+                    if (res.code === 1) {
+                        empList.value = res.data.rows || [];
+                        empTotal.value = res.data.total || 0;
+                    }
+                } catch (e) {}
+            };
+
+            const searchEmp = () => {
+                empPage.value = 1;
+                fetchEmpList();
+            };
+
+            const resetEmpSearch = () => {
+                empSearch.name = '';
+                empSearch.gender = '';
+                empSearch.dateRange = [];
+                empPage.value = 1;
+                fetchEmpList();
+            };
+
+            const handleEmpSelectionChange = (val) => {
+                empSelected.value = val;
+            };
+
+            const openAddEmp = () => {
+                fetchDeptList();
+                isEditEmp.value = false;
+                empDialogTitle.value = '新增员工';
+                Object.assign(empForm, { id: null, username: '', password: '', name: '', gender: null, image: '', job: null, entrydate: '', deptId: null });
+                empDialogVisible.value = true;
+            };
+
+            const openEditEmp = async (row) => {
+                fetchDeptList();
+                isEditEmp.value = true;
+                empDialogTitle.value = '编辑员工';
+                try {
+                    const res = await request.get('/emps/' + row.id);
+                    if (res.code === 1) {
+                        Object.assign(empForm, res.data);
+                    }
+                } catch (e) {}
+                empDialogVisible.value = true;
+            };
+
+            const submitEmpForm = async () => {
+                if (!empForm.name || !empForm.username || !empForm.deptId) {
+                    ElMessage.warning('请填写完整信息');
+                    return;
+                }
+                try {
+                    if (isEditEmp.value) {
+                        await request.put('/emps', empForm);
+                        ElMessage.success('修改成功');
+                    } else {
+                        await request.post('/emps', empForm);
+                        ElMessage.success('新增成功');
+                    }
+                    empDialogVisible.value = false;
+                    fetchEmpList();
+                } catch (e) {}
+            };
+
+            const handleDeleteEmp = (row) => {
+                ElMessageBox.confirm('确定删除员工 "' + row.name + '" 吗？', '提示', { type: 'warning' })
+                    .then(async () => {
+                        await request.delete('/emps/' + row.id);
+                        ElMessage.success('删除成功');
+                        fetchEmpList();
+                    })
+                    .catch(() => {});
+            };
+
+            const batchDeleteEmp = () => {
+                if (empSelected.value.length === 0) {
+                    ElMessage.warning('请选择要删除的员工');
+                    return;
+                }
+                const ids = empSelected.value.map(item => item.id).join(',');
+                ElMessageBox.confirm('确定删除选中的 ' + empSelected.value.length + ' 条记录吗？', '提示', { type: 'warning' })
+                    .then(async () => {
+                        await request.delete('/emps/' + ids);
+                        ElMessage.success('删除成功');
+                        fetchEmpList();
+                    })
+                    .catch(() => {});
+            };
+
+            // 登录
+            const doLogin = async () => {
+                if (!loginForm.username || !loginForm.password) {
+                    ElMessage.warning('请输入用户名和密码');
+                    return;
+                }
+                loading.value = true;
+                try {
+                    const res = await request.post('/login', loginForm);
+                    if (res.code === 1) {
+                        localStorage.setItem('token', res.data);
+                        token.value = res.data;
+                        ElMessage.success('登录成功');
+                        currentMenu.value = 'home';
+                    } else {
+                        ElMessage.error(res.msg || '登录失败');
+                    }
+                } finally {
+                    loading.value = false;
+                }
+            };
+
+            const logout = () => {
+                localStorage.removeItem('token');
+                token.value = '';
+                currentMenu.value = 'home';
+            };
+
+            onMounted(() => {
+                if (token.value) {
+                    fetchDeptList();
+                }
+            });
+
+            return {
+                token, loginForm, loading, currentMenu, breadcrumb,
+                handleMenuSelect,
+                deptList, deptDialogVisible, deptDialogTitle, deptForm,
+                openAddDept, openEditDept, submitDeptForm, handleDeleteDept,
+                empList, empPage, empPageSize, empTotal, empSearch, empDialogVisible, empDialogTitle, empForm,
+                jobMap, searchEmp, resetEmpSearch, handleEmpSelectionChange, openAddEmp, openEditEmp, submitEmpForm, handleDeleteEmp, batchDeleteEmp,
+                doLogin, logout
+            };
+        }
+    }).use(ElementPlus).mount('#app');
+</script>
+</body>
+</html>

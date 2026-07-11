@@ -1,5 +1,6 @@
 package org.example.tliaswebmanagement.controller;
 
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.example.tliaswebmanagement.pojo.Dept;
 import org.example.tliaswebmanagement.pojo.Result;
@@ -49,7 +50,7 @@ public class DeptController {
 
     //新增部门
     @PostMapping
-    public Result add(@RequestBody Dept dept){
+    public Result add(@Valid @RequestBody Dept dept){
 
         log.info("新增部门:{}",dept);
         deptService.add(dept);
@@ -66,7 +67,7 @@ public class DeptController {
 
     //修改部门
     @PutMapping
-    public Result update(@RequestBody Dept dept){
+    public Result update(@Valid @RequestBody Dept dept){
         log.info("修改部门:{}",dept);
         deptService.update(dept);
         return Result.success();

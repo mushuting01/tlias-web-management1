@@ -3,8 +3,8 @@ spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3307/tlias
-    username:  ${DB_USERNAME}
-    password:  ${DB_PASSWORD}
+    username: root
+    password: "048422"
   servlet:
     multipart:
       max-file-size: 10MB
@@ -34,4 +34,7 @@ logging:
   level:
     org.springframework.jdbc.support.JdbcTransactionManager: debug
 
-
+#JWT令牌配置（密钥从硬编码移到配置文件，便于不同环境使用不同密钥）
+jwt:
+  sign-key: mushuting    # JWT签名密钥（生产环境应改为更长的随机字符串）
+  expire: 43200000       # JWT过期时间（毫秒），43200000 = 12小时

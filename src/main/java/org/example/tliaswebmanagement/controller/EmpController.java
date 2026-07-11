@@ -1,5 +1,6 @@
 package org.example.tliaswebmanagement.controller;
 
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.example.tliaswebmanagement.pojo.Emp;
 import org.example.tliaswebmanagement.pojo.PageBean;
@@ -57,7 +58,7 @@ public class EmpController {
     }
 
     @PostMapping
-    public Result save(@RequestBody Emp emp){//RequestBody是把 HTTP 请求体中的 JSON 数据 自动转换成 Java 对象。
+    public Result save(@Valid @RequestBody Emp emp){//RequestBody是把 HTTP 请求体中的 JSON 数据 自动转换成 Java 对象。
 
         log.info("新增员工，emp:{}",emp);
         empService.save(emp);
@@ -73,7 +74,10 @@ public class EmpController {
 
 
     @PutMapping
-    public Result update(@RequestBody Emp emp){
+    public Result update(@Valid @RequestBody Emp emp){//@Valid 的作用就是： 告诉 Spring，对这个参数进行校验！
+        // Spring 会自动检查 emp 对象的字段
+        // 如果 @NotBlank 校验失败，会抛出 MethodArgumentNotValidException
+        // 被 GlobalExceptionHandler 捕获，返回友好的错误信息
         log.info("更新员工信息emp:{}",emp);
         empService.update(emp);
         return Result.success();

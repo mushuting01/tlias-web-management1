@@ -1,8 +1,13 @@
 package org.example.tliaswebmanagement.pojo;
 
+
+import jakarta.validation.constraints.NotNull;  // ✅ 这是参数校验的注解
+import jakarta.validation.constraints.NotBlank;  // ✅ 非空字符串校验
+import jakarta.validation.constraints.Size;      // ✅ 长度校验
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -19,16 +24,34 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Emp {
-    private Integer id;             // 员工ID，主键，自增
-    private String username;        // 登录用户名，唯一
-    private String password;        // 登录密码
-    private String name;            // 员工真实姓名
-    private Short gender;           // 性别：1-男，2-女
-    private String image;           // 员工头像图片的URL地址
-    private Short job;              // 职位：1-班主任，2-讲师，3-学工主管，4-教研主管，5-咨询师
-    private LocalDate entrydate;    // 入职日期
-    private Integer deptId;         // 所属部门ID，外键关联dept表的id
-    private LocalDateTime createTime; // 记录创建时间
-    private LocalDateTime updateTime; // 记录最后修改时间
+    private Integer id;
+
+    @NotBlank(message = "用户名不能为空")        // 非空且不为空白
+    @Size(min = 2, max = 20, message = "用户名长度必须在2-20之间")  // 长度限制
+    private String username;
+
+    @NotBlank(message = "密码不能为空")
+    @Size(min = 6, max = 50, message = "密码长度必须在6-50之间")
+    private String password;
+
+    @NotBlank(message = "姓名不能为空")
+    private String name;
+
+    @NotNull(message = "性别不能为空")
+    private Short gender;
+
+    private String image;
+
+    @NotNull(message = "职位不能为空")
+    private Short job;
+
+    @NotNull(message = "入职日期不能为空")
+    private LocalDate entrydate;
+
+    @NotNull(message = "部门ID不能为空")
+    private Integer deptId;
+
+    private LocalDateTime createTime;
+    private LocalDateTime updateTime;
 }
 

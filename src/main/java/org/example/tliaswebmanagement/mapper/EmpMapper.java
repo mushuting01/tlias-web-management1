@@ -99,5 +99,17 @@ public interface EmpMapper {
     //根据部门ID删除该部门下的员工
     @Delete("delete from emp where dept_id = #{deptId}")
     void deleteByDeptId(Integer deptId);
+
+    // 根据用户名查询用户（用于登录验证）
+    @Select("select * from emp where username = #{username}")
+    Emp getByUsername(String username);
+
+    // 查询用户名是否已存在
+    @Select("select count(*) from emp where username = #{username}")
+    Integer countByUsername(String username);
+
+    // 查询部门下的员工数量
+    @Select("select count(*) from emp where dept_id = #{deptId}")
+    Integer countByDeptId(Integer deptId);
 }
 

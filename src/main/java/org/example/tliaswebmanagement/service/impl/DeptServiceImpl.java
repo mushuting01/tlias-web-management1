@@ -1,5 +1,6 @@
 package org.example.tliaswebmanagement.service.impl;
 
+import org.example.tliaswebmanagement.exception.BusinessException;
 import org.example.tliaswebmanagement.mapper.DeptMapper;
 import org.example.tliaswebmanagement.mapper.EmpMapper;
 import org.example.tliaswebmanagement.pojo.Dept;
@@ -20,8 +21,8 @@ import java.util.List;
  * 调用链：Controller → DeptService（接口） → DeptServiceImpl（实现） → DeptMapper（数据访问）
  *
  * @Service 注解：将该类标记为Spring的Service组件，
- * Spring会自动创建该类的实例并注入到IOC容器中管理，
- * 当Controller需要DeptService时，Spring会自动注入DeptServiceImpl实例
+ *          Spring会自动创建该类的实例并注入到IOC容器中管理，
+ *          当Controller需要DeptService时，Spring会自动注入DeptServiceImpl实例
  */
 @Service
 public class DeptServiceImpl implements DeptService {
@@ -40,35 +41,41 @@ public class DeptServiceImpl implements DeptService {
         return deptMapper.list();
     }
 
-
-    //@Transactional(rollbackFor = Exception.class)//spring事务管理
     @Transactional
     @Override
     public void delete(Integer id) {
-        try{
-            deptMapper.deleteByID(id);//根据ID删除部门数据
+        Dept dept = deptMapper.getById(id);
+        if (dept == null) {
+            throw new BusinessException("部门不存在");
+        }
 
-            empMapper.deleteByDeptId(id);//根据部门ID删除该部门下的员工
-        }finally{
+        Integer empCount = empMapper.countByDeptId(id);
+        if (empCount > 0) {
+            throw new BusinessException("该部门下还有员工，无法删除");
+        }
+
+        try {
+            deptMapper.deleteByID(id);
+            empMapper.deleteByDeptId(id);
+        } finally {
             DeptLog deptLog = new DeptLog();
             deptLog.setCreateTime(LocalDateTime.now());
             deptLog.setDescription("执行了解散部门的操作,此次解散的是" + id + "号部门");
             deptService.insert(deptLog);
-
         }
-
-
-
-
     }
 
     @Override
     public void add(Dept dept) {
+        Integer count = deptMapper.countByName(dept.getName());
+        if (count > 0) {
+            throw new BusinessException("部门名称已存在");
+        }
+
         dept.setCreateTime(LocalDateTime.now());
         dept.setUpdateTime(LocalDateTime.now());
         deptMapper.insert(dept);
 
-        // 记录操作日志
         DeptLog deptLog = new DeptLog();
         deptLog.setCreateTime(LocalDateTime.now());
         deptLog.setDescription("新增了部门：" + dept.getName());

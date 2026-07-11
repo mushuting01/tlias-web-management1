@@ -1,8 +1,11 @@
 package org.example.tliaswebmanagement.pojo;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 
 /**
@@ -18,9 +21,13 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Dept {
-    private Integer id;             // 部门ID，主键，自增
-    private String name;            // 部门名称（如：学工部、教研部、咨询部等）
-    private LocalDateTime createTime; // 记录创建时间
-    private LocalDateTime updateTime; // 记录最后修改时间
+    private Integer id;
+
+    @NotBlank(message = "部门名称不能为空")
+    @Size(min = 2, max = 50, message = "部门名称长度必须在2-50之间")
+    private String name;
+
+    private LocalDateTime createTime;
+    private LocalDateTime updateTime;
 }
 

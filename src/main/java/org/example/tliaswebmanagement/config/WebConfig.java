@@ -1,19 +1,23 @@
 package org.example.tliaswebmanagement.config;
 
-import org.example.tliaswebmanagement.interceptor.LoginCheckInterceptor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-@Configuration//表示这个类是配置类
+@Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    @Autowired
-    private LoginCheckInterceptor loginCheckInterceptor;
-
+    /**
+     * 跨域资源配置
+     * 前后端分离部署时，前端（不同域名/端口）需要通过 CORS 访问后端 API
+     */
     @Override
-    public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(loginCheckInterceptor).addPathPatterns("/**");
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowedOriginPatterns("*")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+                .maxAge(3600);
     }
 }
